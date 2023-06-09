@@ -7,7 +7,8 @@ from flowMC.nfmodel.utils import *
 from flowMC.sampler.MALA import MALA
 from flowMC.sampler.Sampler import Sampler
 from flowMC.utils.PRNG_keys import initialize_rng_keys
-
+import json
+import argparse
 
 def mixture_gaussian(x: jnp.array, params: dict) -> float:
     """Probability density function of a gaussian mixture model with 3 Gaussians.
@@ -43,27 +44,47 @@ def mixture_gaussian(x: jnp.array, params: dict) -> float:
     
     return logpdf
 
-n_dim = 2
-n_chains = 20
-n_loop_training = 10
-n_loop_production = 10
-n_local_steps = 100
-n_global_steps = 100
-learning_rate = 0.001
-momentum = 0.9
-num_epochs = 30
-batch_size = 10000
+# Create parser that take a json config file as input
+parser = argparse.ArgumentParser(description='Run flowMC on a gaussian mixture model.')
+parser.add_argument('--config', type=str, help='Path to the json config file.')
+args = parser.parse_args()
 
-data = {"mu1": jnp.array([0.0, 0.0]), "mu2": jnp.array([3.0, 3.0]), "mu3": jnp.array([4.0, -3.0]),
-        "sigma1": jnp.array([[1.0, 0.0], [0.0, 1.0]]), "sigma2": jnp.array([[1.0, 0.0], [0.0, 1.0]]),
-        "sigma3": jnp.array([[1.0, 0.0], [0.0, 1.0]]), "w1": 0.2, "w2": 0.5, "w3": 0.3}
+# Load the config file
+with open(args.config) as f:
+    config = json.load(f)
 
-rng_key_set = initialize_rng_keys(n_chains, seed=42)
+# Extract the parameters from the config file
+n_dim = config["n_dim"]
+n_chains = config["n_chains"]
+n_loop_training = config["n_loop_training"]
+n_loop_production = config["n_loop_production"]
+n_local_steps = config["n_local_steps"]
+n_global_steps = config["n_global_steps"]
+learning_rate = config["learning_rate"]
+momentum = config["momentum"]
+num_epochs = config["num_epochs"]
+batch_size = config["batch_size"]
 
+data = config["data"]
+n_block = config["n_blocks"]
+hidden_units = config["hidden_units"]
+n_bins = config["n_bins"]
+
+output_path = config["output_path"]
+
+data['mu1'] = jnp.array(data['mu1'])
+data['mu2'] = jnp.array(data['mu2'])
+data['mu3'] = jnp.array(data['mu3'])
+data['sigma1'] = jnp.array(data['sigma1'])
+data['sigma2'] = jnp.array(data['sigma2'])
+data['sigma3'] = jnp.array(data['sigma3'])
+
+# Initialize the random number generator keys
+rng_key_set = initialize_rng_keys(n_chains, seed=config["seed"])
 initial_position = jax.random.normal(rng_key_set[0], shape=(n_chains, n_dim)) * 5
 
-MALA_Sampler = MALA(mixture_gaussian, True, {"step_size": 1.0})
-model = RQSpline(n_dim, 4, [32, 32], 8)
+MALA_Sampler = MALA(mixture_gaussian, True, {"step_size": config["step_size"]})
+model = RQSpline(n_dim, n_block, hidden_units, n_bins)
 
 print("Initializing sampler class")
 
@@ -88,6 +109,27 @@ nf_sampler = Sampler(
 nf_sampler.sample(initial_position, data)
 summary = nf_sampler.get_sampler_state(training=True)
 chains, log_prob, local_accs, global_accs, loss_vals = summary.values() 
-nf_samples = nf_sampler.sample_flow(10000)
 
-nf_sampler.save("test_workspace/mixture_gaussian")
+nf_sampler.save(output_path)
+
+# # Create a JSON file with the parameters of the model
+# with open("example/agent_example/example_config.json", "w") as f:
+#     config = {
+#         "n_dim": n_dim,
+#         "n_chains": n_chains,
+#         "n_loop_training": n_loop_training,
+#         "n_loop_production": n_loop_production,
+#         "n_local_steps": n_local_steps,
+#         "n_global_steps": n_global_steps,
+#         "learning_rate": learning_rate,
+#         "momentum": momentum,
+#         "num_epochs": num_epochs,
+#         "batch_size": batch_size,
+#         "data": data,
+#         "seed": 42,
+#         "step_size": 1.0,
+#         "n_blocks": 4,
+#         "hidden_units": [32, 32],
+#         "n_bins": 8,
+#     }
+#     json.dump(config, f, indent=4)
