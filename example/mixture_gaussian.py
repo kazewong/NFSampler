@@ -60,7 +60,7 @@ data = {"mu1": jnp.array([0.0, 0.0]), "mu2": jnp.array([3.0, 3.0]), "mu3": jnp.a
 
 rng_key_set = initialize_rng_keys(n_chains, seed=42)
 
-initial_position = jax.random.normal(rng_key_set[0], shape=(n_chains, n_dim)) * 1
+initial_position = jax.random.normal(rng_key_set[0], shape=(n_chains, n_dim)) * 5
 
 MALA_Sampler = MALA(mixture_gaussian, True, {"step_size": 1.0})
 model = RQSpline(n_dim, 4, [32, 32], 8)
