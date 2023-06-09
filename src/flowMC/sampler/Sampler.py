@@ -1,6 +1,5 @@
 from logging import lastResort
 from typing import Callable, Tuple
-import jax
 import jax.numpy as jnp
 import numpy as np
 from flowMC.nfmodel.utils import sample_nf, make_training_loop, eval_nf
@@ -10,6 +9,8 @@ import flax
 import optax
 from flowMC.sampler.LocalSampler_Base import LocalSamplerBase
 from tqdm import tqdm
+import pickle
+import json
 
 
 class Sampler():
@@ -381,11 +382,12 @@ class Sampler():
         )
         return log_prob
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset the sampler state.
 
         """
+        self.state = self.sampler.init(self.rng_keys_mcmc, self.initial_position, self.likelihood_vec(self.initial_position))
         training = {}
         training["chains"] = jnp.empty((self.n_chains, 0, self.n_dim))
         training["log_prob"] = jnp.empty((self.n_chains, 0))
@@ -402,3 +404,33 @@ class Sampler():
         self.summary = {}
         self.summary['training'] = training
         self.summary['production'] = production
+
+    def save(self, path: str) -> None:
+        """
+        Save the configuration to a Json file and save the sampler state to a python binary.
+
+        Args:
+            path (str): Path to save the file.
+
+        """
+        print("Saving sampler config and state")
+        config = {
+            "n_chains": self.n_chains,
+            "n_dim": self.n_dim,
+            "n_loop_training": self.n_loop_training,
+            "n_loop_production": self.n_loop_production,
+            "n_epochs": self.n_epochs,
+            "use_global": self.use_global,
+            "n_local_steps": self.n_local_steps,
+            "n_global_steps": self.n_global_steps,
+            "learning_rate": self.learning_rate,
+            "momentum": self.momentum,
+            "batch_size": self.batch_size,
+            "max_samples": self.max_samples,
+            "keep_quantile": self.keep_quantile,
+            "train_thinning": self.train_thinning,
+        }
+        with open(path + "_config.json", "w") as f:
+            json.dump(config, f, indent=4)
+
+        jnp.savez(path + "_summary.npz", **self.summary)

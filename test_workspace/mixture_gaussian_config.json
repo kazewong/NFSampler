@@ -1,0 +1,16 @@
+{
+    "n_chains": 20,
+    "n_dim": 2,
+    "n_loop_training": 10,
+    "n_loop_production": 10,
+    "n_epochs": 30,
+    "use_global": true,
+    "n_local_steps": 100,
+    "n_global_steps": 100,
+    "learning_rate": 0.001,
+    "momentum": 0.9,
+    "batch_size": 10000,
+    "max_samples": 10000,
+    "keep_quantile": 0,
+    "train_thinning": 1
+}

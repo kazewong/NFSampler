@@ -4,3 +4,5 @@ Examples
 ========
 
 In this page, we host community examples which has used `flowMC` successfully.
+
+Jim - gravitational wave parameter estimation with flowMC
