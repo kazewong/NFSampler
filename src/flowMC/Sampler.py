@@ -169,7 +169,7 @@ class Sampler:
                 else:
                     self.strategies.append(strategy)
         else:
-            self.strategies = default_strategies 
+            self.strategies = default_strategies
 
         self.summary = {}
 
@@ -191,7 +191,7 @@ class Sampler:
         # Note that auto-tune function needs to have the same number of steps
         # as the actual sampling loop to avoid recompilation.
 
-        initial_position = jnp.atleast_2d(initial_position) # type: ignore
+        initial_position = jnp.atleast_2d(initial_position)  # type: ignore
         rng_key = self.rng_key
         last_step = initial_position
         for strategy in self.strategies:
