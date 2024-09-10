@@ -127,6 +127,7 @@ class NFProposal(ProposalBase):
         log_prob_initial = self.logpdf_vmap(initial_position, data)[:, None]
         log_prob_nf_initial = self.model.log_prob(initial_position)[:, None]
 
+        if verbose: print("Sampling flow")
         proposal_position, log_prob_proposal, log_prob_nf_proposal = self.sample_flow(
             subkeys[0], initial_position, data, n_steps
         )

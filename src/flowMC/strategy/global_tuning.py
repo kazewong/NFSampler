@@ -144,6 +144,7 @@ class GlobalTuning(Strategy):
                 lambda m: m._data_cov, global_sampler.model, data_cov
             )
 
+            if self.verbose: print("Training NF model")
             (
                 rng_keys_nf,
                 model,
@@ -158,6 +159,7 @@ class GlobalTuning(Strategy):
                 self.batch_size,
                 self.verbose,
             )
+            if self.verbose: print("Finish training")
             global_sampler.model = model
             self.optim_state = optim_state
             summary["loss_vals"] = jnp.append(
@@ -165,7 +167,7 @@ class GlobalTuning(Strategy):
                 loss_values.reshape(1, -1),
                 axis=0,
             )
-
+            if self.verbose: print("Start global sampling")
             (
                 rng_keys_nf,
                 nf_chain,
@@ -178,6 +180,7 @@ class GlobalTuning(Strategy):
                 data,
                 verbose=self.verbose,
             )
+            if self.verbose: print("Finish global sampling")
 
             summary["chains"] = jnp.append(
                 summary["chains"],
