@@ -5,6 +5,8 @@ import jax
 import jax.numpy as jnp
 from jaxtyping import Array, Float, Int, PRNGKeyArray, PyTree
 
+from flowMC.utils.debug import flush
+
 
 @jax.tree_util.register_pytree_node_class
 class ProposalBase:
@@ -36,7 +38,7 @@ class ProposalBase:
 
     def precompilation(self, n_chains, n_dims, n_step, data):
         if self.jit is True:
-            print("jit is requested, precompiling kernels and update...")
+            flush("jit is requested, precompiling kernels and update...")
             key = jax.random.split(jax.random.PRNGKey(0), n_chains)
 
             self.logpdf_vmap = (
@@ -46,12 +48,7 @@ class ProposalBase:
             )
             self.kernel_vmap = (
                 jax.jit(self.kernel_vmap)
-                .lower(
-                    key,
-                    jnp.ones((n_chains, n_dims)),
-                    jnp.ones((n_chains, )),
-                    data,
-                )
+                .lower(key, jnp.ones((n_chains, n_dims)), jnp.ones((n_chains,)), data)
                 .compile()
             )
             self.update_vmap = (
@@ -61,21 +58,21 @@ class ProposalBase:
                     (
                         key,
                         jnp.ones((n_chains, n_step, n_dims)),
-                        jnp.ones((n_chains, n_step, )),
-                        jnp.zeros((n_chains, n_step, )),
+                        jnp.ones((n_chains, n_step)),
+                        jnp.zeros((n_chains, n_step)),
                         data,
                     ),
                 )
                 .compile()
             )
         else:
-            print("jit is not requested, compiling only vmap functions...")
+            flush("jit is not requested, compiling only vmap functions...")
             key = jax.random.split(jax.random.PRNGKey(0), n_chains)
             self.logpdf_vmap = self.logpdf_vmap(jnp.ones((n_chains, n_dims)), data)
             self.kernel_vmap(
                 key,
                 jnp.ones((n_chains, n_dims)),
-                jnp.ones((n_chains, )),
+                jnp.ones((n_chains,)),
                 data,
             )
             self.update_vmap(
@@ -83,8 +80,8 @@ class ProposalBase:
                 (
                     key,
                     jnp.ones((n_chains, n_step, n_dims)),
-                    jnp.ones((n_chains, n_step, )),
-                    jnp.zeros((n_chains, n_step, )),
+                    jnp.ones((n_chains, n_step)),
+                    jnp.zeros((n_chains, n_step)),
                     data,
                 ),
             )

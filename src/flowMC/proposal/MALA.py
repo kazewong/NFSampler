@@ -8,12 +8,13 @@ from jaxtyping import Array, Bool, Float, Int, PRNGKeyArray, PyTree
 from tqdm import tqdm
 
 from flowMC.proposal.base import ProposalBase
+from flowMC.utils.debug import flush
 
 
 class MALA(ProposalBase):
     """
-    Metropolis-adjusted Langevin algorithm sampler clas
-    builiding the mala_sampler method
+    Metropolis-adjusted Langevin algorithm sampler class building the mala_sampler
+    method
 
     Args:
         logpdf: target logpdf function
@@ -43,11 +44,12 @@ class MALA(ProposalBase):
         tuple[Float[Array, " n_dim"], float, dict],
         tuple[Float[Array, " n_dim"], Float[Array, "1"], Float[Array, " n_dim"]],
     ]:
-        print("Compiling MALA body")
+        flush("Compiling MALA body")
         this_position, dt, data = carry
         dt2 = dt * dt
         this_log_prob, this_d_log = jax.value_and_grad(self.logpdf)(this_position, data)
-        proposal = this_position + jnp.dot(dt2, this_d_log) / 2
+        flush("proposal.MALA.body: this_d_log={this_d_log}", this_d_log=this_d_log)
+        proposal = this_position + jnp.dot(dt2, this_d_log) * 0.5
         proposal += jnp.dot(dt, jax.random.normal(this_key, shape=this_position.shape))
         return (proposal, dt, data), (proposal, this_log_prob, this_d_log)
 
@@ -85,10 +87,10 @@ class MALA(ProposalBase):
 
         ratio = logprob[1] - logprob[0]
         ratio -= multivariate_normal.logpdf(
-            proposal[0], position + jnp.dot(dt2, d_logprob[0]) / 2, dt2
+            proposal[0], position + jnp.dot(dt2, d_logprob[0]) * 0.5, dt2
         )
         ratio += multivariate_normal.logpdf(
-            position, proposal[0] + jnp.dot(dt2, d_logprob[1]) / 2, dt2
+            position, proposal[0] + jnp.dot(dt2, d_logprob[1]) * 0.5, dt2
         )
 
         log_uniform = jnp.log(jax.random.uniform(key2))
